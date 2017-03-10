@@ -1,0 +1,14 @@
+extends layout
+
+block content
+  .container
+    h1 Login Page
+    p Please Login
+    form(method='post', action='/users/register',enctype='multipart/form-data')
+      .form-group
+        label Username
+        input.form-control(name='username', type='text', placeholder='Enter UserName')
+      .form-group
+        label Password
+        input.form-control(name='password', type='password', placeholder='Enter Password')
+      input.btn.btn-warning(name='submit', type='submit', value='Login')
