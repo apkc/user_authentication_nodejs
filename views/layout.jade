@@ -57,16 +57,16 @@ html
           // Navigation
           .collapse.navbar-collapse
             ul.nav.navbar-nav.navbar-right
-             li.active.nav-item 
+             li.nav-item(class=(title == 'Members' ? 'active' : '')) 
               a(href='/') Members
               |                             
               li.nav-item(class=(title == 'Register' ? 'active' : ''))
                 a(href='/users/register') Register
               |                             
-              li.nav-item
+              li.nav-item(class=(title == 'Login' ? 'active' : ''))
                 a(href='/users/login') Login
               
-              li.nav-item
+              li.nav-item(class=(title == 'Logout' ? 'active' : ''))
                 a(href='/users/logout') Logout
               |                             
               li.nav-item.dropdown
@@ -101,7 +101,8 @@ html
       //-   .map.min-height-500px
       //-                 
       .col-md-4.pull-left
-        img.brand-img.img-responsive(src='/images/brand/pgblocks-logo-white.png')
+        a(href='/')
+          img.brand-img.img-responsive(src='/images/torus.png')
         |                     
         ul.social.social-light
           li
