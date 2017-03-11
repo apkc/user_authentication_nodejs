@@ -1,5 +1,8 @@
 var express = require('express');
 var router = express.Router();
+// including the user.js file in models folder to users.js route file
+var User = require('../models/user');
+
 
 /* GET users listing. */
 router.get('/users', function(req, res, next) {
@@ -36,7 +39,7 @@ router.post('/register', function(req, res, next){
     var profilImageMime = req.files.profileimage.mimetype;
     var profileImagePath = req.files.profileimage.path;
     var profileImageExt = req.files.profileimage.extension;
-    var profileImageSize = req.files.profileiamge.size;
+    var profileImageSize = req.files.profileimage.size;
   } else {
     //Set default image
     var profileImageName = 'anon.jpg';

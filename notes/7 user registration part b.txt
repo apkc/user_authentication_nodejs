@@ -1,0 +1,50 @@
+To make a model for users firstly:
+Create a folder models/ in root folder and a new file named: 'user.js'
+
+Then we need to link the newly created user.js file in models folder to routes/users.js file:
+In /routes/users.js:
+
+Add:
+  var User = require('../models/user');
+
+Now in models/user.js add:
+  var mongoose = require('mongoose');
+  
+  mongoose.connect('mongodb://localhost/nodeauth');
+
+  var db = mongoose.connection;
+
+Now adding the USer Schema:
+ in same file add:
+
+  var UserSchema = mongoose.Schema({
+  username: {
+    type: String,
+    index: true
+  },
+  password: {
+    type: String
+  },
+  email: {
+    type: String
+  },
+  name: {
+    type: String
+  },
+  profileimage: {
+    type: String
+  }
+});
+
+var User = module.exports = mongoose.model('User', UserSchema);
+
+module.exports.createUser = function(newUser, callback){
+  newUser.save(callback);
+}
+
+Now start the mongodb by { $ mongod in one terminal and $ mongo in another} 
+Then restart the server and check
+
+Goto Register page and try
+See the database through the terminal and check the data.
+
