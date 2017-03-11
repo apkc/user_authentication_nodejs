@@ -1,0 +1,122 @@
+To make a user registration feature:
+
+Goto routes/users.js and add:
+
+router.post('/register', function(req, res, next){
+  var name = req.body.name;
+  var email = req.body.email;
+  var username = req.body.username;
+  var password = req.body.password;
+  var password2 = req.body.password2;
+
+
+//Check for Image Field.
+
+  if(req.files.profileimage){
+    console.log('Uploading file...');
+    //File infos.
+    var profileImageOriginalName = req.files.profileimage.originalname;
+    var profileImageName = req.files.profileimage.name;
+    var profilImageMime = req.files.profileimage.mimetype;
+    var profileImagePath = req.files.profileimage.path;
+    var profileImageExt = req.files.profileimage.extension;
+    var profileImageSize = req.files.profileimage.size;
+  } else {
+    //Set default image
+    var profileImageName = 'anon.jpg';
+  }
+
+  //Validating Form
+
+  req.checkBody('name', 'Name field is required').notEmpty();
+  req.checkBody('email', 'Email field is required').notEmpty();
+  req.checkBody('email', 'Email not valid!').isEmail();
+  req.checkBody('username', 'Username is required').notEmpty();
+  req.checkBody('password', 'Password is required').notEmpty();
+  req.checkBody('password2', 'Passwords not matching').equals(req.body.password);
+
+  // Checking errors.
+  var errors = req.validationErrors();
+  if(errors){
+    res.render('register',{
+      errors: errors,
+      name: name,
+      email: email,
+      username: username,
+      password: password,
+      password2: password2
+    });
+  } else {
+    var newUser = new User({
+      name: name,
+      email: email,
+      username: username,
+      password: password,
+      profileimage: profileImageName
+    });
+
+    //Create User
+    User.createUser(newUser, function(err, user){
+      if(err) throw err;
+      console.log(user);
+    });
+
+    //Flash message
+    req.flash('success', 'You are registered and may login now.');
+    res.location('/');
+    res.redirect('/');
+
+  }
+});
+
+
+To make the flash error messages goto views/register.jade file and add:
+
+under 
+block content
+  .container
+    h1 Register Page
+    p Please register using the page below
+
+add:
+ul.errors
+      if errors
+        each error, i in errors
+          li.alert.alert-danger #{error.msg}
+
+
+The whole register.jade file looks like:
+
+extends layout
+
+block content
+  .container
+    h1 Register Page
+    p Please register using the page below
+    ul.errors
+      if errors
+        each error, i in errors
+          li.alert.alert-danger #{error.msg}
+    form(method='post', action='/users/register',enctype='multipart/form-data')
+      .form-group
+        label Name
+        input.form-control(name='name', type='text', placeholder='Enter Name')
+      .form-group
+        label Email
+        input.form-control(name='email', type='email', placeholder='Enter Email')
+      .form-group
+        label Username
+        input.form-control(name='username', type='text', placeholder='Enter UserName')
+      .form-group
+        label Password
+        input.form-control(name='password', type='password', placeholder='Enter Password')
+      .form-group
+        label Confirm Password
+        input.form-control(name='password2', type='password', placeholder='Re-enter Password')
+      .form-group
+        label Profile Image
+        input.form-control(name='profileimage', type='file')
+      input.btn.btn-success(name='submit', type='submit', value='Register')
+
+
+      
