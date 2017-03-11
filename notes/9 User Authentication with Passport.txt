@@ -1,0 +1,420 @@
+After installing and setting the bcrypt now we will use the authentication system via logging in.
+We will use passportjs for authentication.
+For passportjs documentation goto:
+http://passportjs.org/guide
+
+To configure passportjs:
+
+In app.js add:
+
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+
+after session add:
+//Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.js looks like:
+
+var express = require('express');
+var path = require('path');
+var favicon = require('serve-favicon');
+var logger = require('morgan');
+var cookieParser = require('cookie-parser');
+
+var expressValidator = require('express-validator');
+var session = require('express-session');
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+var bodyParser = require('body-parser');
+var multer = require('multer');
+var flash = require('connect-flash');
+var mongo = require('mongodb');
+var mongoose = require('mongoose');
+var db = mongoose.connection;
+
+
+var index = require('./routes/index');
+var users = require('./routes/users');
+
+var app = express();
+
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+
+// Handle file uploads
+app.use(multer({dest:'./uploads'}));
+
+
+// uncomment after placing your favicon in /public
+//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+//Handle express sessions
+
+app.use(session({
+  secret:'secret',
+  saveUninitialized: true,
+  resave:true
+}));
+
+//Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+//validator
+app.use(expressValidator({
+  errorFormatter: function(param, msg, value) {
+    var namespace = param.split('.'),
+    root = namespace.shift(),
+    formParam = root;
+
+    while(namespace.length) {
+      formParam += '[' + namespace.shift() + ']';
+    }
+    return {
+      param : formParam,
+      msg : msg,
+      value : value
+    };
+  }
+}));
+
+
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+
+app.use(flash());
+
+app.use(function (req, res, next) {
+  res.locals.messages = require('express-messages')(req, res);
+  next();
+});
+
+app.use('/', index);
+app.use('/users', users);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  var err = new Error('Not Found');
+  err.status = 404;
+  next(err);
+});
+
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
+});
+
+module.exports = app;
+
+
+Now goto /routes/users.js and add:
+
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+
+Before the last line
+module.exports = router; add:
+
+passport.use(new LocalStrategy(
+  function(username, password, done){
+    User.getUserByUsername(username, function(err, user){
+    if(err) throw err;
+    if(!user){
+      console.log('Unknown User!');
+    return done(null, false,{message:'Unknown User'});
+      }
+    });
+  }));
+
+router.post('/login', passport.authenticate('local',{failureRedirect: '/users/login', failureFlash:'Invalid username or password!'}), function(req, res){
+  console.log('Logged In!');
+  req.flash('success', 'You are logged in.');
+  res.redirect('/');
+}); 
+
+Now goto models/user.js and right below the var User = module.exports = mongoose.model....... add:
+
+module.exports.getUserByUsername = function(username, callback){
+  var query = {username: username};
+  User.findOne(query,callback);
+}
+
+
+Now goto /routes/users.js and right below the
+
+passport.use(new LocalStrategy(
+  function(username, password, done){
+    User.getUserByUsername(username, function(err, user){
+    if(err) throw err;
+    if(!user){
+      console.log('Unknown User!');
+    return done(null, false,{message:'Unknown User'});
+      }
+
+add:
+....... return done(null, false,{message:'Unknown User'});
+      }
+      User.comparePassword('password', user.password,function(err, isMatch){
+        if(err) throw err;
+        if(isMatch){
+          return done(null, user);
+        } else {
+          console.log('Invalid Password!');
+          return done(null, false, {message: 'Invalid Password'});
+        }
+      });
+
+To establish the session after logging:
+Goto /routes/users.js and right Above the passport.use(new LocalStrategy) add:
+
+passport.serializeUser(function(user, done){
+  done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done){
+  User.getUserById(id, function(err, user){
+    done(err, user);
+  });
+});
+
+Now again goto /models/user.js and add below 
+var User = module.exports = mongoose.model(.......)
+
+right below:
+module.exports.getUserByUsername = function(username, callback){
+  var query = {username: username};
+  User.findOne(query, callback);
+}
+
+add:
+module.exports.getUserById = function(id, callback){
+  User.findById(id,callback);
+}
+
+Now to create a comparePassword function Right Below the var user = module.exports = mongoose.model('User', UserSchema);
+Add:
+
+module.exports.comparePassword = function(candidatePassword, hash, callback){
+  bcrypt.compare(candidatePassword, hash, function(err, isMatch){
+    if(err) return callback(err);
+    callback(null, isMatch);
+  });
+}
+
+Now restart the server and check the logging.
+Check the terminal log for Messages.
+
+
+Final files:
+
+/routes/users.js:
+
+var express = require('express');
+var router = express.Router();
+
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+
+// including the user.js file in models folder to users.js route file
+var User = require('../models/user');
+
+
+/* GET users listing. */
+router.get('/users', function(req, res, next) {
+  res.send('respond with a resource');
+});
+
+router.get('/register', function(req, res, next) {
+  res.render('register', {
+    'title': 'Register'
+  });
+});
+
+router.get('/login', function(req, res, next) {
+  res.render('login', {
+    'title': 'Login'
+  });
+});
+
+router.post('/register', function(req, res, next){
+  var name = req.body.name;
+  var email = req.body.email;
+  var username = req.body.username;
+  var password = req.body.password;
+  var password2 = req.body.password2;
+
+
+//Check for Image Field.
+
+  if(req.files.profileimage){
+    console.log('Uploading file...');
+    //File infos.
+    var profileImageOriginalName = req.files.profileimage.originalname;
+    var profileImageName = req.files.profileimage.name;
+    var profilImageMime = req.files.profileimage.mimetype;
+    var profileImagePath = req.files.profileimage.path;
+    var profileImageExt = req.files.profileimage.extension;
+    var profileImageSize = req.files.profileimage.size;
+  } else {
+    //Set default image
+    var profileImageName = 'anon.jpg';
+  }
+
+  //Validating Form
+
+  req.checkBody('name', 'Name field is required').notEmpty();
+  req.checkBody('email', 'Email field is required').notEmpty();
+  req.checkBody('email', 'Email not valid!').isEmail();
+  req.checkBody('username', 'Username is required').notEmpty();
+  req.checkBody('password', 'Password is required').notEmpty();
+  req.checkBody('password2', 'Passwords not matching').equals(req.body.password);
+
+  // Checking errors.
+  var errors = req.validationErrors();
+  if(errors){
+    res.render('register',{
+      errors: errors,
+      name: name,
+      email: email,
+      username: username,
+      password: password,
+      password2: password2
+    });
+  } else {
+    var newUser = new User({
+      name: name,
+      email: email,
+      username: username,
+      password: password,
+      profileimage: profileImageName
+    });
+
+    //Create User
+    User.createUser(newUser, function(err, user){
+      if(err) throw err;
+      console.log(user);
+    });
+
+    //Flash message
+    req.flash('success', 'You are registered and may login now.');
+    res.location('/');
+    res.redirect('/');
+
+  }
+});
+
+passport.serializeUser(function(user, done){
+  done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done){
+  User.getUserById(id, function(err, user){
+    done(err, user);
+  });
+});
+
+
+passport.use(new LocalStrategy(
+  function(username, password, done){
+    User.getUserByUsername(username, function(err, user){
+      if(err) throw err;
+      if(!user){
+        console.log('Unknown User!');
+        return done(null, false, {message:'Unknown user!'});
+      }
+      User.comparePassword(password, user.password, function(err, isMatch){
+        if(err) throw err;
+        if(isMatch){
+          return done(null, user);
+        } else {
+          console.log('Invalid Password!');
+          return done(null, false, {message: 'Invalid Password!!'});
+        }
+      });
+    });
+  }));
+
+router.post('/login', passport.authenticate('local', {failureRedirect: '/users/login', failureFlash: 'Invalid username or password'}), function(req, res){
+  console.log('Logged in!');
+  req.flash('success', 'You are logged in now...');
+  res.redirect('/');
+});
+
+
+module.exports = router;
+
+
+
+
+/models/user.js:
+
+
+var mongoose = require('mongoose');
+var bcrypt = require('bcrypt');
+mongoose.connect('mongodb://localhost/nodeauth');
+var db = mongoose.connection;
+
+
+//User schema
+
+var UserSchema = mongoose.Schema({
+  username: {
+    type: String,
+    index: true
+  },
+  password: {
+    type: String, required: true, bcrypt: true
+  },
+  email: {
+    type: String
+  },
+  name: {
+    type: String
+  },
+  profileimage: {
+    type: String
+  }
+});
+
+var User = module.exports = mongoose.model('User', UserSchema);
+
+module.exports.comparePassword = function(candidatePassword, hash, callback){
+  bcrypt.compare(candidatePassword, hash, function(err, isMatch){
+    if(err) return callback(err);
+    callback(null, isMatch);
+  });
+}
+
+module.exports.getUserByUsername = function(username, callback){
+  var query = {username: username};
+  User.findOne(query, callback);
+}
+
+module.exports.getUserById = function(id, callback){
+  User.findById(id, callback);
+}
+
+
+module.exports.createUser = function(newUser, callback){
+  bcrypt.hash(newUser.password, 10, function(err, hash){
+    if(err) throw err;
+    //Set hashed password
+    newUser.password = hash;
+    //Create User
+    newUser.save(callback);
+  });
+  
+}
