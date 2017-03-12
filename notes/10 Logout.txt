@@ -1,0 +1,111 @@
+Now we are going to make a logout feature.
+
+Goto /routes/users.js:
+
+Right under:
+
+router.post('/login', passport.authenticate('local', {failureRedirect: '/users/login', failureFlash: 'Invalid username or password'}), function(req, res){
+  console.log('Logged in!');
+  req.flash('success', 'You are logged in now...');
+  res.redirect('/');
+});
+
+add:
+
+router.get('/logout', function(req, res){
+  req.logout();
+  req.flash('success', 'You have logged out.');
+  res.redirect('/users/login');
+});
+
+Check the feature in browser.
+
+To style the flash messages goto /public/stylesheets/style.css or any custom css file which is linked in layout.jade and add / edit to:
+
+body {
+  /* padding: 50px; */
+  font-family: arial;
+}
+a {
+  color: #00B7FF;
+}
+ul.success li, ul.info li, ul.error.li {
+  margin: 20px 20px 20px 20px;
+  padding: 15px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  list-style: none;
+} 
+
+ul.success li {
+  color: #3c763d;
+  background: #dff0d8;
+  border-color: #d6e9c6;
+}
+
+ul.info li {
+  color: #3c763d;
+  background: #dff0d8;
+  border-color: #d6e9c6;
+}
+
+ul.error li {
+  color: #3c763d;
+  background: #dff0d8;
+  border-color: #d6e9c6;
+}
+
+To display the flash message when redirected to Home page after logging in:
+Goto /routes/index.jade:
+
+Add the ensureAuthenticated in router.get('/', function(req, res, next){
+  res.render('index', {title: 'Members'});
+})
+
+which should look like:
+
+router.get('/', ensureAuthenticated, function(req, res, next) {
+  res.render('index', {title: 'Members'});
+});
+
+and right below it also add:
+
+function ensureAuthenticated(req, res, next) {
+  if(req.isAuthenticated()) {
+  return next();
+  }
+  res.redirect('/users/login');
+}
+
+
+
+To make the logout link disappear while not logged in and viceversa:
+
+Making the variable available in all the views,
+Goto /app.js and right above the app.use('/', index);   
+
+Add:
+
+app.get('*', function(req, res, next){
+  res.locals.user = req.user || null;
+  next();
+});
+
+Goto /views/layout.jade edit the navbar links. (********** denotes the addition or editing in this notes.)
+
+*********
+if !user
+*********
+li.nav-item(class=(title == 'Register' ? 'active' : ''))
+                a(href='/users/register') Register
+              |                             
+              li.nav-item(class=(title == 'Login' ? 'active' : ''))
+                a(href='/users/login') Login
+              ***********
+              if user
+              ***********
+              li.nav-item(class=(title == 'Logout' ? 'active' : ''))
+                a(href='/users/logout') Logout
+
+
+

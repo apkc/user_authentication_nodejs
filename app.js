@@ -77,6 +77,14 @@ app.use(function (req, res, next) {
   next();
 });
 
+
+//making user variable public by me
+app.get('*', function(req, res, next) {
+  res.locals.user = req.user || null;
+  next();
+});
+
+
 app.use('/', index);
 app.use('/users', users);
 

@@ -59,15 +59,16 @@ html
             ul.nav.navbar-nav.navbar-right
              li.nav-item(class=(title == 'Members' ? 'active' : '')) 
               a(href='/') Members
-              |                             
-              li.nav-item(class=(title == 'Register' ? 'active' : ''))
-                a(href='/users/register') Register
-              |                             
-              li.nav-item(class=(title == 'Login' ? 'active' : ''))
-                a(href='/users/login') Login
-              
-              li.nav-item(class=(title == 'Logout' ? 'active' : ''))
-                a(href='/users/logout') Logout
+              |   
+              if !user                          
+                li.nav-item(class=(title == 'Register' ? 'active' : ''))
+                  a(href='/users/register') Register
+                |                             
+                li.nav-item(class=(title == 'Login' ? 'active' : ''))
+                  a(href='/users/login') Login
+              if user
+                li.nav-item(class=(title == 'Logout' ? 'active' : ''))
+                  a(href='/users/logout') Logout
               |                             
               li.nav-item.dropdown
                 a.dropdown-toggle(data-toggle='dropdown', data-hover='dropdown', data-delay='0', data-close-others='false', href='#')
@@ -94,6 +95,7 @@ html
         // // End Container
       // // End Navbar
 
+  != messages()
   block content
 
   section.content-block-nopad.bg-deepocean.footer-wrap-1-3
